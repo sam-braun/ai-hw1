@@ -47,28 +47,48 @@ class PuzzleState(object):
         Moves the blank tile one row up.
         :return a PuzzleState with the new configuration
         """
-        pass
+        if self.blank_index < self.n:
+            return None
+        else:
+            up, switched = self.config[:], self.blank_index - self.n
+            up[self.blank_index], up[switched] = up[switched], up[self.blank_index]
+            return PuzzleState(up, self.n, parent=self, action="up", cost=self.cost+1)
       
     def move_down(self):
         """
         Moves the blank tile one row down.
         :return a PuzzleState with the new configuration
         """
-        pass
+        if self.blank_index > self.n**2 - self.n:
+            return None
+        else:
+            down, switched = self.config[:], self.blank_index + self.n
+            down[self.blank_index], down[switched] = down[switched], down[self.blank_index]
+            return PuzzleState(down, self.n, parent=self, action="down", cost=self.cost+1)
       
     def move_left(self):
         """
         Moves the blank tile one column to the left.
         :return a PuzzleState with the new configuration
         """
-        pass
+        if self.blank_index // self.n == 0:
+            return None
+        else:
+            left, switched = self.config[:], self.blank_index - 1
+            left[self.blank_index], left[switched] = left[switched], left[self.blank_index]
+            return PuzzleState(left, self.n, parent=self, action="left", cost=self.cost+1)
 
     def move_right(self):
         """
         Moves the blank tile one column to the right.
         :return a PuzzleState with the new configuration
         """
-        pass
+        if self.blank_index // self.n == self.n - 1:
+            return None
+        else:
+            right, switched = self.config[:], self.blank_index + 1
+            right[self.blank_index], right[switched] = right[switched], right[self.blank_index]
+            return PuzzleState(right, self.n, parent=self, action="right", cost=self.cost+1)
       
     def expand(self):
         """ Generate the child nodes of this node """
@@ -92,18 +112,84 @@ class PuzzleState(object):
 
 ### Students need to change the method to have the corresponding parameters
 def writeOutput():
-    ### Student Code Goes here
-    pass
+    print("""path to goal: the sequence of moves taken to reach the goal
+    cost of path: the number of moves taken to reach the goal
+    nodes expanded: the number of nodes that have been expanded
+    search depth: the depth within the search tree when the goal node is found
+    max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds
+    max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute
+    """)
+    
 
 def bfs_search(initial_state):
     """BFS search"""
-    ### STUDENT CODE GOES HERE ###
-    pass
+    """
+    function BREADTH-FIRST-SEARCH(initialState, goalTest) returns SUCCESS or FAILURE:
+        frontier = Queue.new (initialState)
+        explored = Set.new()
+
+        while not frontier.isEmpty ():
+            state = frontier.dequeue()
+            explored.add(state)
+            
+            if goalTest (state):
+                return SUCCEss(state)
+
+            for neighbor in state.neighbors):
+                if neighbor not in frontier U explored:
+                    frontier.enqueue(neighbor)
+        return FAILURE
+    
+    """
+    frontier, explored = [], set()
+    frontier.append(initial_state)
+
+    while frontier:
+        state = frontier.pop(0)
+        explored.add(state)
+
+        if test_goal(state):
+            return
+    
+        for child in PuzzleState.expand(state):
+            if child not in (frontier or explored):
+                frontier.append(child)
+
 
 def dfs_search(initial_state):
     """DFS search"""
-    ### STUDENT CODE GOES HERE ###
-    pass
+    """
+    function DEPTH-FIRST-SEARCH(initialState, goalTest) returns SUCCESS or FAILURE:
+        frontier = Stack.new (initialState)
+        explored = Set.new()
+
+        while not frontier.isEmpty ():
+            state = frontier.pop()
+            explored.add(state)
+
+            if goalTest (state):
+                return SUCCESS(state)
+
+            for neighbor in state.neighbors):
+                if neighbor not in frontier U explored:
+                    frontier.push(neighbor)
+
+        return FAILURE
+    """
+    frontier, explored = [], set()
+    frontier.append(initial_state)
+
+    while frontier:
+        state = frontier.pop(-1) # poping top of stack?
+        explored.add(state)
+
+        if test_goal(state):
+            return
+    
+        for child in PuzzleState.expand(state):
+            if child not in (frontier or explored) and child != None:
+                frontier.append(child)
+    
 
 def A_star_search(initial_state):
     """A * search"""
