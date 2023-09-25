@@ -59,7 +59,7 @@ class PuzzleState(object):
         Moves the blank tile one row down.
         :return a PuzzleState with the new configuration
         """
-        if self.blank_index > self.n**2 - self.n:
+        if self.blank_index > self.n**2 - self.n - 1:
             return None
         else:
             down, switched = self.config[:], self.blank_index + self.n
@@ -112,13 +112,16 @@ class PuzzleState(object):
 
 ### Students need to change the method to have the corresponding parameters
 def writeOutput(state, node_cnt):
-    print("path to goal: " + path_to_goal(state))
-    print("cost of path: the number of moves taken to reach the goal")
-    print("nodes expanded: the number of nodes that have been expanded")
-    print("search depth: the depth within the search tree when the goal node is found")
-    print("max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds")
-    print("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute")
+    lines, path_to_goal = [], path_to_goal(state)
+    lines.append("path to goal: " + path_to_goal + '\n')
+    lines.append("cost of path: " + state.cost + '\n')
+    lines.append("nodes expanded: " + node_cnt + '\n')
+    lines.append("search depth: " + len(path_to_goal + '\n'))
+    lines.append("max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds" + '\n')
+    lines.append("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute" + '\n')
 
+    with open('output.txt', 'w') as f:
+        f.write(lines) # f.write('\n'.join(lines))
 
 def path_to_goal(state):
     steps = []
@@ -131,7 +134,6 @@ def path_to_goal(state):
 
 
 def bfs_search(initial_state):
-    """BFS search"""
     """
     function BREADTH-FIRST-SEARCH(initialState, goalTest) returns SUCCESS or FAILURE:
         frontier = Queue.new (initialState)
@@ -153,16 +155,16 @@ def bfs_search(initial_state):
     frontier, explored = [], set()
     frontier.append(initial_state)
 
-    # implement priority queue?
     while frontier:
         state = frontier.pop(0)
         explored.add(state)
 
         if test_goal(state):
             writeOutput(state, len(explored))
+            return 0
     
         for child in PuzzleState.expand(state):
-            if child not in (frontier or explored):
+            if child not in frontier and child not in explored:
                 frontier.append(child)
 
     return -1 # failure?
@@ -196,10 +198,11 @@ def dfs_search(initial_state):
         explored.add(state)
 
         if test_goal(state):
-            return
+            writeOutput(state, len(explored))
+            return 0
     
         for child in PuzzleState.expand(state):
-            if child not in (frontier or explored) and child != None:
+            if child not in frontier and child not in explored and child != None:
                 frontier.append(child)
 
     return -1 # failure?    
@@ -250,6 +253,7 @@ def main():
     board_size  = int(math.sqrt(len(begin_state)))
     hard_state  = PuzzleState(begin_state, board_size)
     start_time  = time.time()
+
     
     if   search_mode == "bfs": bfs_search(hard_state)
     elif search_mode == "dfs": dfs_search(hard_state)
