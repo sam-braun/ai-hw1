@@ -52,7 +52,7 @@ class PuzzleState(object):
         else:
             up, switched = self.config[:], self.blank_index - self.n
             up[self.blank_index], up[switched] = up[switched], up[self.blank_index]
-            return PuzzleState(up, self.n, parent=self, action="up", cost=self.cost+1)
+            return PuzzleState(up, self.n, parent=self, action="Up", cost=self.cost+1)
       
     def move_down(self):
         """
@@ -64,7 +64,7 @@ class PuzzleState(object):
         else:
             down, switched = self.config[:], self.blank_index + self.n
             down[self.blank_index], down[switched] = down[switched], down[self.blank_index]
-            return PuzzleState(down, self.n, parent=self, action="down", cost=self.cost+1)
+            return PuzzleState(down, self.n, parent=self, action="Down", cost=self.cost+1)
       
     def move_left(self):
         """
@@ -76,7 +76,7 @@ class PuzzleState(object):
         else:
             left, switched = self.config[:], self.blank_index - 1
             left[self.blank_index], left[switched] = left[switched], left[self.blank_index]
-            return PuzzleState(left, self.n, parent=self, action="left", cost=self.cost+1)
+            return PuzzleState(left, self.n, parent=self, action="Left", cost=self.cost+1)
 
     def move_right(self):
         """
@@ -88,7 +88,7 @@ class PuzzleState(object):
         else:
             right, switched = self.config[:], self.blank_index + 1
             right[self.blank_index], right[switched] = right[switched], right[self.blank_index]
-            return PuzzleState(right, self.n, parent=self, action="right", cost=self.cost+1)
+            return PuzzleState(right, self.n, parent=self, action="Right", cost=self.cost+1)
       
     def expand(self):
         """ Generate the child nodes of this node """
@@ -111,15 +111,24 @@ class PuzzleState(object):
 # Function that Writes to output.txt
 
 ### Students need to change the method to have the corresponding parameters
-def writeOutput():
-    print("""path to goal: the sequence of moves taken to reach the goal
-    cost of path: the number of moves taken to reach the goal
-    nodes expanded: the number of nodes that have been expanded
-    search depth: the depth within the search tree when the goal node is found
-    max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds
-    max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute
-    """)
+def writeOutput(state, node_cnt):
+    print("path to goal: " + path_to_goal(state))
+    print("cost of path: the number of moves taken to reach the goal")
+    print("nodes expanded: the number of nodes that have been expanded")
+    print("search depth: the depth within the search tree when the goal node is found")
+    print("max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds")
+    print("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute")
+
+
+def path_to_goal(state):
+    steps = []
     
+    while state != None:
+        steps.append(state.parent.action)
+        state = state.parent
+    
+    return steps[-2::-1]
+
 
 def bfs_search(initial_state):
     """BFS search"""
@@ -144,16 +153,19 @@ def bfs_search(initial_state):
     frontier, explored = [], set()
     frontier.append(initial_state)
 
+    # implement priority queue?
     while frontier:
         state = frontier.pop(0)
         explored.add(state)
 
         if test_goal(state):
-            return
+            writeOutput(state, len(explored))
     
         for child in PuzzleState.expand(state):
             if child not in (frontier or explored):
                 frontier.append(child)
+
+    return -1 # failure?
 
 
 def dfs_search(initial_state):
@@ -189,17 +201,36 @@ def dfs_search(initial_state):
         for child in PuzzleState.expand(state):
             if child not in (frontier or explored) and child != None:
                 frontier.append(child)
-    
+
+    return -1 # failure?    
 
 def A_star_search(initial_state):
     """A * search"""
-    ### STUDENT CODE GOES HERE ###
-    pass
+    """
+    function A-STAR-SEARCH(initialState, goalTest) returns SUCCESS or FAILURE: /* Cost f(n) = g(n) + h(n) */
+        frontier = Heap.new(initialState)
+        explored = Set.new ()
+
+        while not frontier.isEmpty ():
+            state = frontier.deleteMin()
+            explored.add(state)
+
+            if goalTest (state):
+                return SUCCEss(state)
+
+            for neighbor in state.neighbors:
+                if neighbor not in frontier U explored:
+                    frontier. insert (neighbor)
+
+                else if neighbor in frontier:
+                    frontier.decreaseKey(neighbor)
+
+        return FAILURE
+    """
 
 def calculate_total_cost(state):
     """calculate the total estimated cost of a state"""
-    ### STUDENT CODE GOES HERE ###
-    pass
+    return state.cost
 
 def calculate_manhattan_dist(idx, value, n):
     """calculate the manhattan distance of a tile"""
@@ -208,8 +239,8 @@ def calculate_manhattan_dist(idx, value, n):
 
 def test_goal(puzzle_state):
     """test the state is the goal state or not"""
-    ### STUDENT CODE GOES HERE ###
-    pass
+    goal = list(range(0, puzzle_state.n))
+    return True if puzzle_state.config == goal else False
 
 # Main Function that reads in Input and Runs corresponding Algorithm
 def main():
