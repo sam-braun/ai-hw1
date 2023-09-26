@@ -43,6 +43,7 @@ class PuzzleState(object):
             print(self.config[3*i : 3*(i+1)])
 
     def move_up(self):
+        
         """ 
         Moves the blank tile one row up.
         :return a PuzzleState with the new configuration
@@ -50,11 +51,13 @@ class PuzzleState(object):
         if self.blank_index < self.n:
             return None
         else:
+            print("in move up")
             up, switched = self.config[:], self.blank_index - self.n
             up[self.blank_index], up[switched] = up[switched], up[self.blank_index]
             return PuzzleState(up, self.n, parent=self, action="Up", cost=self.cost+1)
       
     def move_down(self):
+        
         """
         Moves the blank tile one row down.
         :return a PuzzleState with the new configuration
@@ -62,30 +65,35 @@ class PuzzleState(object):
         if self.blank_index > self.n**2 - self.n - 1:
             return None
         else:
+            print("in move down")
             down, switched = self.config[:], self.blank_index + self.n
             down[self.blank_index], down[switched] = down[switched], down[self.blank_index]
             return PuzzleState(down, self.n, parent=self, action="Down", cost=self.cost+1)
       
     def move_left(self):
+        
         """
         Moves the blank tile one column to the left.
         :return a PuzzleState with the new configuration
         """
-        if self.blank_index // self.n == 0:
+        if self.blank_index % self.n == 0:
             return None
         else:
+            print("in move left")
             left, switched = self.config[:], self.blank_index - 1
             left[self.blank_index], left[switched] = left[switched], left[self.blank_index]
             return PuzzleState(left, self.n, parent=self, action="Left", cost=self.cost+1)
 
     def move_right(self):
+        
         """
         Moves the blank tile one column to the right.
         :return a PuzzleState with the new configuration
         """
-        if self.blank_index // self.n == self.n - 1:
+        if self.blank_index % self.n == self.n - 1:
             return None
         else:
+            print("in move right")
             right, switched = self.config[:], self.blank_index + 1
             right[self.blank_index], right[switched] = right[switched], right[self.blank_index]
             return PuzzleState(right, self.n, parent=self, action="Right", cost=self.cost+1)
@@ -112,22 +120,22 @@ class PuzzleState(object):
 
 ### Students need to change the method to have the corresponding parameters
 def writeOutput(state, node_cnt):
-    lines, path_to_goal = [], path_to_goal(state)
-    lines.append("path to goal: " + path_to_goal + '\n')
-    lines.append("cost of path: " + state.cost + '\n')
-    lines.append("nodes expanded: " + node_cnt + '\n')
-    lines.append("search depth: " + len(path_to_goal + '\n'))
-    lines.append("max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds" + '\n')
-    lines.append("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute" + '\n')
 
+    lines, goal_path = [], path_to_goal(state)
     with open('output.txt', 'w') as f:
-        f.write(lines) # f.write('\n'.join(lines))
+        f.write("path to goal: " + str(goal_path) + '\n')
+        f.write("cost of path: " + str(state.cost) + '\n')
+        f.write("nodes expanded: " + str(node_cnt) + '\n')
+        f.write("search depth: " + str(len(goal_path)) + '\n')
+        f.write("max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds" + '\n')
+        f.write("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute" + '\n')
+
 
 def path_to_goal(state):
     steps = []
     
     while state != None:
-        steps.append(state.parent.action)
+        steps.append(state.action)
         state = state.parent
     
     return steps[-2::-1]
@@ -152,20 +160,24 @@ def bfs_search(initial_state):
         return FAILURE
     
     """
-    frontier, explored = [], set()
-    frontier.append(initial_state)
+    frontier, frontier_set, explored = Q.Queue(), set(), set()
+    
+    frontier.put(initial_state)
+    frontier_set.add(tuple(initial_state.config))
 
-    while frontier:
-        state = frontier.pop(0)
-        explored.add(state)
+    while not frontier.empty():
+        state = frontier.get()
+        frontier_set.remove(tuple(state.config))
+        explored.add(tuple(state.config))
 
         if test_goal(state):
             writeOutput(state, len(explored))
             return 0
     
         for child in PuzzleState.expand(state):
-            if child not in frontier and child not in explored:
-                frontier.append(child)
+            if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
+                frontier.put(child)
+                frontier_set.add(tuple(child.config))
 
     return -1 # failure?
 
@@ -242,7 +254,7 @@ def calculate_manhattan_dist(idx, value, n):
 
 def test_goal(puzzle_state):
     """test the state is the goal state or not"""
-    goal = list(range(0, puzzle_state.n))
+    goal = list(range(0, puzzle_state.n**2))
     return True if puzzle_state.config == goal else False
 
 # Main Function that reads in Input and Runs corresponding Algorithm
