@@ -202,22 +202,27 @@ def dfs_search(initial_state):
 
         return FAILURE
     """
-    frontier, explored = [], set()
+    frontier, frontier_set, explored = [], set(), set()
+    
     frontier.append(initial_state)
+    frontier_set.add(tuple(initial_state.config))
 
     while frontier:
-        state = frontier.pop(-1) # poping top of stack?
-        explored.add(state)
+        state = frontier.pop(-1)
+        frontier_set.remove(tuple(state.config))
+        explored.add(tuple(state.config))
 
         if test_goal(state):
             writeOutput(state, len(explored))
             return 0
     
         for child in PuzzleState.expand(state):
-            if child not in frontier and child not in explored and child != None:
+            if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
                 frontier.append(child)
+                frontier_set.add(tuple(child.config))
 
     return -1 # failure?    
+
 
 def A_star_search(initial_state):
     """A * search"""
