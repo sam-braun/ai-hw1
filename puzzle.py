@@ -119,15 +119,18 @@ class PuzzleState(object):
 # Function that Writes to output.txt
 
 ### Students need to change the method to have the corresponding parameters
-def writeOutput(state, node_cnt):
+def writeOutput(state, node_cnt, max_depth):
+    end_time = time.time()
+    run_time = end_time - start_time
 
     lines, goal_path = [], path_to_goal(state)
     with open('output.txt', 'w') as f:
         f.write("path to goal: " + str(goal_path) + '\n')
         f.write("cost of path: " + str(state.cost) + '\n')
-        f.write("nodes expanded: " + str(node_cnt) + '\n')
+        f.write("nodes expanded: " + str(node_cnt - 1) + '\n')
         f.write("search depth: " + str(len(goal_path)) + '\n')
-        f.write("max search depth: the maximum depth of the search tree in the lifetime of the algorithm running time: the total running time of the search instance, reported in seconds" + '\n')
+        f.write("max search depth: " + str(max_depth + 1) + '\n')
+        f.write("running time: " + str(run_time) + '\n')
         f.write("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute" + '\n')
 
 
@@ -171,7 +174,7 @@ def bfs_search(initial_state):
         explored.add(tuple(state.config))
 
         if test_goal(state):
-            writeOutput(state, len(explored))
+            writeOutput(state, len(explored), state.cost)
             return 0
     
         for child in PuzzleState.expand(state):
@@ -206,22 +209,29 @@ def dfs_search(initial_state):
     
     frontier.append(initial_state)
     frontier_set.add(tuple(initial_state.config))
+    max_depth = 0
 
     while frontier:
-        state = frontier.pop(-1)
+        state = frontier.pop()
         frontier_set.remove(tuple(state.config))
         explored.add(tuple(state.config))
 
+        if state.cost > max_depth:
+            max_depth = state.cost
+            print("max_depth now = " + str(max_depth))
+        
+        print(str(state.cost))
+
         if test_goal(state):
-            writeOutput(state, len(explored))
+            writeOutput(state, len(explored - 1), max_depth) # max depth!!!!!!!
             return 0
     
-        for child in PuzzleState.expand(state):
+        for child in reversed(state.expand()):
             if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
                 frontier.append(child)
                 frontier_set.add(tuple(child.config))
 
-    return -1 # failure?    
+    return -1 # failure?
 
 
 def A_star_search(initial_state):
@@ -248,14 +258,46 @@ def A_star_search(initial_state):
         return FAILURE
     """
 
+    frontier, frontier_set, explored = Q.PriorityQueue(), set(), set()
+    max_depth, tie = 0, 0
+    expanded_nodes = 0  # New method????????
+
+    frontier.put((calculate_total_cost(initial_state), tie, initial_state))
+    frontier_set.add(tuple(initial_state.config))
+
+    while not frontier.empty():
+        _, _, state = frontier.get() # can you use index [2]?????
+        frontier_set.remove(tuple(state.config)) # unnecessary???
+        explored.add(tuple(state.config))
+
+        if state.cost > max_depth:
+            max_depth = state.cost
+
+        if test_goal(state):
+            writeOutput(state, len(explored), max_depth)
+            return 0
+
+        for child in state.expand():
+            expanded_nodes += 1
+            if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
+                frontier.put((calculate_total_cost(child), tie, child))
+                frontier_set.add(tuple(child.config))
+                tie += 1
+    
+    return -1  # failure?
+
 def calculate_total_cost(state):
     """calculate the total estimated cost of a state"""
     return state.cost
 
 def calculate_manhattan_dist(idx, value, n):
     """calculate the manhattan distance of a tile"""
-    ### STUDENT CODE GOES HERE ###
-    pass
+    row_idx = idx // n
+    col_idx = idx % n
+    row_val = value // n
+    col_val = value % n
+
+    return abs(row_idx - row_val) + abs(col_idx - col_val)
 
 def test_goal(puzzle_state):
     """test the state is the goal state or not"""
@@ -264,6 +306,7 @@ def test_goal(puzzle_state):
 
 # Main Function that reads in Input and Runs corresponding Algorithm
 def main():
+    global start_time
     search_mode = sys.argv[1].lower()
     begin_state = sys.argv[2].split(",")
     begin_state = list(map(int, begin_state))
