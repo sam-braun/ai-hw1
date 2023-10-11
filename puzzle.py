@@ -6,6 +6,7 @@ import sys
 import math
 import time
 import queue as Q
+import resource # for RAM usage
 
 #### SKELETON CODE ####
 ## The Class that Represents the Puzzle
@@ -51,7 +52,7 @@ class PuzzleState(object):
         if self.blank_index < self.n:
             return None
         else:
-            print("in move up")
+            # print("in move up")
             up, switched = self.config[:], self.blank_index - self.n
             up[self.blank_index], up[switched] = up[switched], up[self.blank_index]
             return PuzzleState(up, self.n, parent=self, action="Up", cost=self.cost+1)
@@ -65,7 +66,7 @@ class PuzzleState(object):
         if self.blank_index > self.n**2 - self.n - 1:
             return None
         else:
-            print("in move down")
+            # print("in move down")
             down, switched = self.config[:], self.blank_index + self.n
             down[self.blank_index], down[switched] = down[switched], down[self.blank_index]
             return PuzzleState(down, self.n, parent=self, action="Down", cost=self.cost+1)
@@ -79,7 +80,7 @@ class PuzzleState(object):
         if self.blank_index % self.n == 0:
             return None
         else:
-            print("in move left")
+            # print("in move left")
             left, switched = self.config[:], self.blank_index - 1
             left[self.blank_index], left[switched] = left[switched], left[self.blank_index]
             return PuzzleState(left, self.n, parent=self, action="Left", cost=self.cost+1)
@@ -93,7 +94,7 @@ class PuzzleState(object):
         if self.blank_index % self.n == self.n - 1:
             return None
         else:
-            print("in move right")
+            # print("in move right")
             right, switched = self.config[:], self.blank_index + 1
             right[self.blank_index], right[switched] = right[switched], right[self.blank_index]
             return PuzzleState(right, self.n, parent=self, action="Right", cost=self.cost+1)
@@ -123,15 +124,17 @@ def writeOutput(state, node_cnt, max_depth):
     end_time = time.time()
     run_time = end_time - start_time
 
+    dfs_ram = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - dfs_start_ram)/(2**20)
+
     lines, goal_path = [], path_to_goal(state)
     with open('output.txt', 'w') as f:
-        f.write("path to goal: " + str(goal_path) + '\n')
-        f.write("cost of path: " + str(state.cost) + '\n')
-        f.write("nodes expanded: " + str(node_cnt - 1) + '\n')
-        f.write("search depth: " + str(len(goal_path)) + '\n')
-        f.write("max search depth: " + str(max_depth + 1) + '\n')
-        f.write("running time: " + str(run_time) + '\n')
-        f.write("max ram usage: the maximum RAM usage in the lifetime of the process as measured by the ru maxrss attribute" + '\n')
+        f.write("path_to_goal: " + str(goal_path) + '\n')
+        f.write("cost_of_path: " + str(state.cost) + '\n')
+        f.write("nodes_expanded: " + str(node_cnt) + '\n')
+        f.write("search_depth: " + str(len(goal_path)) + '\n')
+        f.write("max_search_depth: " + str(max_depth) + '\n')
+        f.write("running_time: " + str(round(run_time, 8)) + '\n')
+        f.write("max_ram_usage: " + str(round(dfs_ram, 8)))
 
 
 def path_to_goal(state):
@@ -164,6 +167,7 @@ def bfs_search(initial_state):
     
     """
     frontier, frontier_set, explored = Q.Queue(), set(), set()
+    expanded_nodes = 0
     
     frontier.put(initial_state)
     frontier_set.add(tuple(initial_state.config))
@@ -174,13 +178,15 @@ def bfs_search(initial_state):
         explored.add(tuple(state.config))
 
         if test_goal(state):
-            writeOutput(state, len(explored), state.cost)
+            writeOutput(state, expanded_nodes, int(state.cost) + 1)
             return 0
     
         for child in PuzzleState.expand(state):
             if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
                 frontier.put(child)
                 frontier_set.add(tuple(child.config))
+
+        expanded_nodes += 1
 
     return -1 # failure?
 
@@ -209,7 +215,7 @@ def dfs_search(initial_state):
     
     frontier.append(initial_state)
     frontier_set.add(tuple(initial_state.config))
-    max_depth = 0
+    max_depth, expanded_nodes = 0, 0
 
     while frontier:
         state = frontier.pop()
@@ -218,18 +224,20 @@ def dfs_search(initial_state):
 
         if state.cost > max_depth:
             max_depth = state.cost
-            print("max_depth now = " + str(max_depth))
+            # print("max_depth now = " + str(max_depth))
         
-        print(str(state.cost))
+        # print(str(state.cost))
 
         if test_goal(state):
-            writeOutput(state, len(explored - 1), max_depth) # max depth!!!!!!!
+            writeOutput(state, expanded_nodes, max_depth) # max depth!!!!!!!
             return 0
     
         for child in reversed(state.expand()):
             if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
                 frontier.append(child)
                 frontier_set.add(tuple(child.config))
+        
+        expanded_nodes += 1
 
     return -1 # failure?
 
@@ -270,32 +278,40 @@ def A_star_search(initial_state):
         frontier_set.remove(tuple(state.config)) # unnecessary???
         explored.add(tuple(state.config))
 
-        if state.cost > max_depth:
-            max_depth = state.cost
+        
 
         if test_goal(state):
-            writeOutput(state, len(explored), max_depth)
+            writeOutput(state, expanded_nodes, max_depth)
             return 0
 
         for child in state.expand():
-            expanded_nodes += 1
             if tuple(child.config) not in frontier_set and tuple(child.config) not in explored:
+                max_depth = max(max_depth, child.cost)
+                
                 frontier.put((calculate_total_cost(child), tie, child))
                 frontier_set.add(tuple(child.config))
                 tie += 1
+        
+        expanded_nodes += 1
     
     return -1  # failure?
 
 def calculate_total_cost(state):
     """calculate the total estimated cost of a state"""
-    return state.cost
+    dist, i = state.cost, 0
+
+    for tile in state.config:
+        if int(tile) != 0:
+            dist += calculate_manhattan_dist(i, int(tile), state.n)
+        i += 1
+
+    return dist
+
 
 def calculate_manhattan_dist(idx, value, n):
     """calculate the manhattan distance of a tile"""
-    row_idx = idx // n
-    col_idx = idx % n
-    row_val = value // n
-    col_val = value % n
+    row_idx, row_val = idx // n, value // n
+    col_idx, col_val = idx % n, value % n
 
     return abs(row_idx - row_val) + abs(col_idx - col_val)
 
@@ -307,11 +323,13 @@ def test_goal(puzzle_state):
 # Main Function that reads in Input and Runs corresponding Algorithm
 def main():
     global start_time
+    global dfs_start_ram
     search_mode = sys.argv[1].lower()
     begin_state = sys.argv[2].split(",")
     begin_state = list(map(int, begin_state))
     board_size  = int(math.sqrt(len(begin_state)))
     hard_state  = PuzzleState(begin_state, board_size)
+    dfs_start_ram = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     start_time  = time.time()
 
     
