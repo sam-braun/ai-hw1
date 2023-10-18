@@ -31,6 +31,7 @@ def board_to_string(board):
 
 
 def select_unassigned_variable(csp):
+    print("in select_unassigned_variable")
     min_domain_size, min_domain_tile = 10, ""
 
     for tile in csp:
@@ -41,70 +42,42 @@ def select_unassigned_variable(csp):
         return None
     return min_domain_tile
 
-def board_check(board):
-    print("in board_check")
-   
-    # iterate through columns
-    for col in COL:
-        seen = set()
-        
-        for row in ROW:
-            tile_value = board[row + col]
-            if tile_value in seen or tile_value == 0:
-                return False
-            seen.add(tile_value)
-
-    # iterate through rows
-    for row in ROW:
-        seen = set()
-        
-        for col in COL:
-            tile_value = board[row + col]
-            if tile_value in seen or tile_value == 0:
-                return False
-            seen.add(tile_value)
-
-    # iterate through boxes
-    box_rows, box_cols = ["ABC", "DEF", "GHI"], ["123", "456", "789"]
-    for rows in box_rows:
-        for cols in box_cols:
-            seen = set()
-            for row in rows:
-                for col in cols:
-                    if board[row + col] in seen:
-                        return False
-                    seen.add(board[row + col])
-
-    print("returns true")
-    return True
-
 def get_neighboring_tiles(tile):
+    print("in get_neighboring_tiles")
     tile_row, tile_col, neighbors = tile[0], tile[1], set()
 
     # tile row
+    # print("making neigb rows")
     for col in COL:
         neighbors.add(tile_row + col)
+    # print(neighbors)
     
     # tile column
+    # print("making neigb columns")
     for row in ROW:
         neighbors.add(row + tile_col)
+    # print(neighbors)
     
     # tile mini box
+    # print("making neigb mini box")
     col_idx, row_idx = COL.index(tile_col), ROW.index(tile_row)
     box_col, box_row = col_idx // 3, row_idx // 3
 
     box_cols = [COL[box_col * 3], COL[(box_col * 3) + 1], COL[(box_col * 3) + 2]]
     box_rows = [ROW[box_row * 3], ROW[(box_row * 3) + 1], ROW[(box_row * 3) + 2]]
 
-    for rows in box_cols:
-        for cols in box_rows:
+    for cols in box_cols:
+        for rows in box_rows:
             neighbors.add(rows + cols)
+    
+    #print(neighbors)
     
     neighbors.remove(tile)
     return list(neighbors)
 
 
 def forward_check(csp, tile, value):
+    print("in forward_checking")
     neighbors = get_neighboring_tiles(tile)
     for curr in neighbors:
         if value in csp[curr]:
@@ -180,6 +153,8 @@ def backtracking_helper(board, csp):
     """
 
 def build_csp(board):
+    print("in build_csp")
+
     csp = {}
     for col in COL:
         for row in ROW:
@@ -191,7 +166,8 @@ def build_csp(board):
     for row in ROW:
         for col in COL:
             if board[row + col] == 0:
-                neighbors, domain = get_neighboring_tiles(board[row + col]), csp[row + col]
+                neighbors, domain = get_neighboring_tiles(row + col), csp[row + col]
+                print("neighbors: " + str(neighbors))
                 csp[row + col] = [num for num in domain if num not in neighbors]
 
     print(csp)
@@ -268,3 +244,44 @@ if __name__ == '__main__':
             outfile.write('\n')
 
         print("Finishing all boards in file.")
+
+
+"""
+
+def board_check(board):
+    print("in board_check")
+   
+    # iterate through columns
+    for col in COL:
+        seen = set()
+        
+        for row in ROW:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
+                return False
+            seen.add(tile_value)
+
+    # iterate through rows
+    for row in ROW:
+        seen = set()
+        
+        for col in COL:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
+                return False
+            seen.add(tile_value)
+
+    # iterate through boxes
+    box_rows, box_cols = ["ABC", "DEF", "GHI"], ["123", "456", "789"]
+    for rows in box_rows:
+        for cols in box_cols:
+            seen = set()
+            for row in rows:
+                for col in cols:
+                    if board[row + col] in seen:
+                        return False
+                    seen.add(board[row + col])
+
+    print("returns true")
+    return True
+"""
