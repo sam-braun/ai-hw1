@@ -11,7 +11,6 @@ import sys
 ROW = "ABCDEFGHI"
 COL = "123456789"
 
-
 def print_board(board):
     """Helper function to print board in a square."""
     print("-----------------")
@@ -43,60 +42,54 @@ def select_unassigned_variable(csp):
     return min_domain_tile
 
 def board_check(board):
+    print("in board_check")
+   
     # iterate through columns
-    for index in ROW:
+    for col in COL:
         seen = set()
         
-        for col in COL:
-            tile_value = board[ROW + str(col)]
-            if tile_value in seen:
+        for row in ROW:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
                 return False
             seen.add(tile_value)
 
     # iterate through rows
-    for index in COL:
+    for row in ROW:
         seen = set()
         
-        for row in ROW:
-            tile_value = board[str(row) + COL]
-            if tile_value in seen:
+        for col in COL:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
                 return False
             seen.add(tile_value)
 
     # iterate through boxes
-    box_rows, box_cols, seen = ["ABC", "DEF", "GHI"], ["123", "456", "789"], set()
+    box_rows, box_cols = ["ABC", "DEF", "GHI"], ["123", "456", "789"]
     for rows in box_rows:
         for cols in box_cols:
+            seen = set()
             for row in rows:
                 for col in cols:
                     if board[row + col] in seen:
                         return False
-                    seen.add(board[rows + cols])
+                    seen.add(board[row + col])
 
+    print("returns true")
     return True
 
-def forward_check(csp, tile, value):
-    csp.update({tile:value})
-    tile_col = [row + tile[1] for row in ROW]
-    tile_row = [tile[0] + col for col in COL]
+def get_neighboring_tiles(tile):
+    tile_row, tile_col, neighbors = tile[0], tile[1], set()
 
-    # check column of tile
-    for tile in tile_col:
-        curr_vals = csp[tile].copy()
-        if value in curr_vals:
-            csp.update({tile:[val for val in curr_vals if val != value]})
-        if csp[tile] == []:
-            return None
+    # tile row
+    for col in COL:
+        neighbors.add(tile_row + col)
     
-    # check row of tile
-    for tile in tile_row:
-        curr_vals = csp[tile].copy()
-        if value in curr_vals:
-            csp.update({tile:[val for val in curr_vals if val != value]})
-        if csp[tile] == []:
-            return None
-
-    # check mini box
+    # tile column
+    for row in ROW:
+        neighbors.add(row + tile_col)
+    
+    # tile mini box
     col_idx, row_idx = COL.index(tile_col), ROW.index(tile_row)
     box_col, box_row = col_idx // 3, row_idx // 3
 
@@ -105,36 +98,69 @@ def forward_check(csp, tile, value):
 
     for rows in box_cols:
         for cols in box_rows:
-            curr_vals = csp[rows + cols]
-            if value in curr_vals:
-                csp.update({rows+cols:[val for val in curr_vals if val != value]})
-            if csp[tile] == []:
-                return None
+            neighbors.add(rows + cols)
+    
+    neighbors.remove(tile)
+    return list(neighbors)
+
+
+def forward_check(csp, tile, value):
+    neighbors = get_neighboring_tiles(tile)
+    for curr in neighbors:
+        if value in csp[curr]:
+            csp[curr].remove(value)
+        if len(csp[curr]) == 0:
+            return None
 
     return csp
+
+def is_complete(board):
+    count = 0
+    for tile in board:
+        count += board[tile]
+    
+    return count == 405
 
 def backtracking_helper(board, csp):
     """Takes a board and returns solved board."""
     # TODO: implement this
-    if board_check(board):
+
+    print("in backtracking_helper")
+
+    if is_complete(board):
+        print("is complete")
         return board
+    
+    print("board incomplete")
 
-    tiny = select_unassigned_variable(csp)
-    if tiny is None:
+
+    smallest_unassigned = select_unassigned_variable(csp)
+    if smallest_unassigned is None:
+        print("did not find smallest_unassigned")
         return None
+    
+    print("found smallest_unassigned")
 
-    for value in csp[tiny]: # ordered domain values???
+    for value in csp[smallest_unassigned]: # ordered domain values???
         csp_copy = csp.copy()
-        new_csp = forward_check(csp_copy, tiny, value)
+        new_csp = forward_check(csp_copy, smallest_unassigned, value)
 
         if new_csp is None:
-            return None
+            break
+
+        print("new_csp made and is legit")
+    
+        # for tile in new_csp:
+        #     if len(new_csp[tile]) == 1 and board[tile] == 0:
+        #         board[tile] = new_csp[tile][0]
         
-        board[tiny] = value
+        board[smallest_unassigned] = value
         result = backtracking_helper(board, new_csp)
         if result:
             return result
-    
+        else:
+            board[smallest_unassigned] = 0
+
     return None
 
     """
@@ -158,25 +184,17 @@ def build_csp(board):
     for col in COL:
         for row in ROW:
             if board[row + col] == 0:
-                csp.update({row+col:[1,2,3,4,5,6,7,8,9]})
+                csp[row + col] = [1,2,3,4,5,6,7,8,9]
             else:
-                csp.update({row+col:board[row+col]})
+                csp[row + col] = [board[row + col]]
     
     for row in ROW:
         for col in COL:
-            elements = set()
-            for c in COL:
-                elements.add(board[row+c])
-            for r in ROW:
-                elements.add(board[r+col])
-            if 0 in elements:
-                elements.add(0)
-            
-            print(csp[row+col])
+            if board[row + col] == 0:
+                neighbors, domain = get_neighboring_tiles(board[row + col]), csp[row + col]
+                csp[row + col] = [num for num in domain if num not in neighbors]
 
-            elements, curr_vals = list(elements), csp[row+col]
-            csp.update({row+col:[elem for elem in curr_vals if elem not in elements]})
-
+    print(csp)
     if csp:
         return csp
     return None
@@ -185,6 +203,7 @@ def backtracking(board):
     csp = build_csp(board)
     if csp:
         final_board = backtracking_helper(board, csp)
+        print("final board made")
     return final_board
 
 
@@ -197,8 +216,12 @@ if __name__ == '__main__':
         board = { ROW[r] + COL[c]: int(sys.argv[1][9*r+c])
                   for r in range(9) for c in range(9)}       
         
+        print("before backtracking")
+
         solved_board = backtracking(board)
         
+        print("after backtracking")
+
         # Write board to file
         out_filename = 'output.txt'
         outfile = open(out_filename, "w")
