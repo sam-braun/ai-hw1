@@ -83,22 +83,62 @@ def forward_check(csp, tile, value):
         if value in csp[curr]:
             csp[curr].remove(value)
         if len(csp[curr]) == 0:
-            return None
+            return None, neighbors
 
-    return csp
+    return csp, neighbors
 
 def is_complete(board):
-    count = 0
-    for tile in board:
-        count += board[tile]
+    # count = 0
+    # for tile in board:
+    #     count += board[tile]
     
-    return count == 405
+    # return count == 405
 
-def backtracking_helper(board, csp):
+    print("in board_check")
+   
+    # iterate through columns
+    for col in COL:
+        seen = set()
+        
+        for row in ROW:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
+                return False
+            seen.add(tile_value)
+
+    # iterate through rows
+    for row in ROW:
+        seen = set()
+        
+        for col in COL:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
+                return False
+            seen.add(tile_value)
+
+    # iterate through boxes
+    box_rows, box_cols = ["ABC", "DEF", "GHI"], ["123", "456", "789"]
+    for rows in box_rows:
+        for cols in box_cols:
+            seen = set()
+            for row in rows:
+                for col in cols:
+                    if board[row + col] in seen:
+                        return False
+                    seen.add(board[row + col])
+
+    print("returns true")
+    return True
+
+def backtracking(board):
     """Takes a board and returns solved board."""
     # TODO: implement this
 
-    print("in backtracking_helper")
+    csp = build_csp(board)
+    if not csp:
+        return None
+
+    print("in backtracking_helper, csp made")
 
     if is_complete(board):
         print("is complete")
@@ -115,24 +155,24 @@ def backtracking_helper(board, csp):
     print("found smallest_unassigned")
 
     for value in csp[smallest_unassigned]: # ordered domain values???
-        csp_copy = csp.copy()
-        new_csp = forward_check(csp_copy, smallest_unassigned, value)
 
-        if new_csp is None:
-            break
+        # csp, modified_tiles = forward_check(csp, smallest_unassigned, value)
+
+        # if csp is None:
+        #     for tile in modified_tiles:
+        #         csp[tile].append(value)
+        #     continue # ??????
 
         print("new_csp made and is legit")
-    
-        # for tile in new_csp:
-        #     if len(new_csp[tile]) == 1 and board[tile] == 0:
-        #         board[tile] = new_csp[tile][0]
         
         board[smallest_unassigned] = value
-        result = backtracking_helper(board, new_csp)
+        result = backtracking(board)
         if result:
             return result
         else:
             board[smallest_unassigned] = 0
+            # for tile in modified_tiles:
+            #     csp[tile].append(value)
 
     return None
 
@@ -168,19 +208,24 @@ def build_csp(board):
             if board[row + col] == 0:
                 neighbors, domain = get_neighboring_tiles(row + col), csp[row + col]
                 print("neighbors: " + str(neighbors))
-                csp[row + col] = [num for num in domain if num not in neighbors]
+                csp[row + col] = [num for num in domain if num not in [board[neighbor] for neighbor in neighbors]]
 
     print(csp)
     if csp:
         return csp
     return None
 
-def backtracking(board):
-    csp = build_csp(board)
-    if csp:
-        final_board = backtracking_helper(board, csp)
-        print("final board made")
-    return final_board
+'''
+
+dentify in the board where the empty tiles are:
+        --Where the value is 0
+        --Apply forward checking to see what values can immediately go in space w/o probs
+    Find minimum remaining value huristic square
+        --If can't find a valid opening then return the completed board or False
+    Recurse
+        --Try each value and then call backtracking on the remaining board
+        --If recursion returns false, set it back to 0
+'''
 
 
 if __name__ == '__main__':
