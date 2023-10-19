@@ -7,6 +7,8 @@ int values.
 e.g. my_board['A1'] = 8
 """
 import sys
+import time
+import numpy as np
 
 ROW = "ABCDEFGHI"
 COL = "123456789"
@@ -20,7 +22,6 @@ def print_board(board):
             row += (str(board[i + j]) + " ")
         print(row)
 
-
 def board_to_string(board):
     """Helper function to convert board dictionary to string for writing."""
     ordered_vals = []
@@ -28,6 +29,20 @@ def board_to_string(board):
         for c in COL:
             ordered_vals.append(str(board[r + c]))
     return ''.join(ordered_vals)
+
+def int_to_list(int_board):
+    list_board = {}
+    for tile in int_board:
+        list_board[tile] = [int_board[tile]]
+    
+    return list_board
+
+def lists_to_ints(list_board):
+    int_board = {}
+    for tile in list_board:
+        int_board[tile] = list_board[tile][0]
+    
+    return int_board
 
 
 def select_unassigned_variable(csp):
@@ -81,72 +96,46 @@ def forward_check(csp, tile, value):
     neighbors = get_neighboring_tiles(tile)
     for curr in neighbors:
         if value in csp[curr]:
+            if len(csp[curr]) == 1: # ?????
+                return None
             csp[curr].remove(value)
         if len(csp[curr]) == 0:
-            return None, neighbors
+            return None
 
-    return csp, neighbors
+    return csp
 
 def is_complete(board):
-    # count = 0
-    # for tile in board:
-    #     count += board[tile]
+    for tile in board:
+        if board[tile] == 0:
+            return False
+        
+    return True
     
+    # if not domain_check(board):
+    #     return False
+    
+    # board_copy = board.copy()
+    # if isinstance(board["A1"], list):
+    #     board_copy = lists_to_ints(board_copy)
+    
+    # count = 0
+    # for tile in board_copy:
+    #     count += board[tile]
     # return count == 405
 
-    print("in board_check")
-   
-    # iterate through columns
-    for col in COL:
-        seen = set()
-        
-        for row in ROW:
-            tile_value = board[row + col]
-            if tile_value in seen or tile_value == 0:
-                return False
-            seen.add(tile_value)
 
-    # iterate through rows
-    for row in ROW:
-        seen = set()
-        
-        for col in COL:
-            tile_value = board[row + col]
-            if tile_value in seen or tile_value == 0:
-                return False
-            seen.add(tile_value)
-
-    # iterate through boxes
-    box_rows, box_cols = ["ABC", "DEF", "GHI"], ["123", "456", "789"]
-    for rows in box_rows:
-        for cols in box_cols:
-            seen = set()
-            for row in rows:
-                for col in cols:
-                    if board[row + col] in seen:
-                        return False
-                    seen.add(board[row + col])
-
-    print("returns true")
-    return True
-
-def backtracking(board):
+def backtracking_helper(board, csp):
     """Takes a board and returns solved board."""
     # TODO: implement this
-
-    csp = build_csp(board)
-    if not csp:
-        return None
 
     print("in backtracking_helper, csp made")
 
     if is_complete(board):
-        print("is complete")
         return board
     
-    print("board incomplete")
-
-
+    if not csp:
+        return None
+    
     smallest_unassigned = select_unassigned_variable(csp)
     if smallest_unassigned is None:
         print("did not find smallest_unassigned")
@@ -156,23 +145,20 @@ def backtracking(board):
 
     for value in csp[smallest_unassigned]: # ordered domain values???
 
-        # csp, modified_tiles = forward_check(csp, smallest_unassigned, value)
+        new_board = board.copy()
+        new_board[smallest_unassigned] = value
 
-        # if csp is None:
-        #     for tile in modified_tiles:
-        #         csp[tile].append(value)
-        #     continue # ??????
+        print(csp)
+        print('\n \n')
 
-        print("new_csp made and is legit")
-        
-        board[smallest_unassigned] = value
-        result = backtracking(board)
-        if result:
-            return result
-        else:
-            board[smallest_unassigned] = 0
-            # for tile in modified_tiles:
-            #     csp[tile].append(value)
+        csp_copy = csp.copy()
+        csp_copy[smallest_unassigned] = [value]
+        new_csp = forward_check(csp_copy, smallest_unassigned, value)
+        print(new_csp)
+        if new_csp:
+            result = backtracking_helper(new_board, new_csp)
+            if result:
+                return result
 
     return None
 
@@ -203,12 +189,12 @@ def build_csp(board):
             else:
                 csp[row + col] = [board[row + col]]
     
-    for row in ROW:
-        for col in COL:
-            if board[row + col] == 0:
-                neighbors, domain = get_neighboring_tiles(row + col), csp[row + col]
-                print("neighbors: " + str(neighbors))
-                csp[row + col] = [num for num in domain if num not in [board[neighbor] for neighbor in neighbors]]
+    # for row in ROW:
+    #     for col in COL:
+    #         if board[row + col] == 0:
+    #             neighbors, domain = get_neighboring_tiles(row + col), csp[row + col]
+    #             print("neighbors: " + str(neighbors))
+    #             csp[row + col] = [num for num in domain if num not in [board[neighbor] for neighbor in neighbors]]
 
     print(csp)
     if csp:
@@ -226,6 +212,9 @@ dentify in the board where the empty tiles are:
         --Try each value and then call backtracking on the remaining board
         --If recursion returns false, set it back to 0
 '''
+
+def backtracking(board):
+    return backtracking_helper(board, build_csp(board))
 
 
 if __name__ == '__main__':
@@ -265,8 +254,20 @@ if __name__ == '__main__':
         out_filename = 'output.txt'
         outfile = open(out_filename, "w")
 
+        # rme = 'README.txt'
+        # readme = open(rme, "w")
+        # times = []
+        # counter=0
+        # maxv = 0
+        # minv = 0
+        # std = 0
+        # mean = 0
+
+
         # Solve each board using backtracking
         for line in sudoku_list.split("\n"):
+
+            start_time = time.time()
 
             if len(line) < 9:
                 continue
@@ -288,12 +289,68 @@ if __name__ == '__main__':
             outfile.write(board_to_string(solved_board))
             outfile.write('\n')
 
+            # end_time = time.time()
+            # timecount= end_time-start_time
+        
+            # counter= counter+1
+            # times.append(timecount)
+        
+        # readme.write("Succesful puzzles : "+str(counter)+'\n')
+        # readme.write("Min Time : "+str(np.min(times))+'\n')
+        # readme.write("Max Time : " + str(np.max(times)) + '\n')
+        # readme.write("Mean Time : " + str(np.mean(times)) + '\n')
+        # readme.write("Standard Dev: " + str(np.std(times)) + '\n')
+
         print("Finishing all boards in file.")
 
 
 """
 
 def board_check(board):
+    print("in board_check")
+   
+    # iterate through columns
+    for col in COL:
+        seen = set()
+        
+        for row in ROW:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
+                return False
+            seen.add(tile_value)
+
+    # iterate through rows
+    for row in ROW:
+        seen = set()
+        
+        for col in COL:
+            tile_value = board[row + col]
+            if tile_value in seen or tile_value == 0:
+                return False
+            seen.add(tile_value)
+
+    # iterate through boxes
+    box_rows, box_cols = ["ABC", "DEF", "GHI"], ["123", "456", "789"]
+    for rows in box_rows:
+        for cols in box_cols:
+            seen = set()
+            for row in rows:
+                for col in cols:
+                    if board[row + col] in seen:
+                        return False
+                    seen.add(board[row + col])
+
+    print("returns true")
+    return True
+
+
+
+
+
+
+
+
+
     print("in board_check")
    
     # iterate through columns
